@@ -9,12 +9,13 @@ import Button from './Modal/Button';
 export default function App() {
   const [pictureName, setPictureName] = useState('');
   const [pictures, setPictures] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [status, setStatus] = useState('idle');
   const [loadMore, setLoadMore] = useState(false);
   const [page, setPage] = useState(1);
 
   const handleFormSubmit = newPictureName => {
+    setError(null);
     setPictureName(newPictureName);
     setPictures([]);
     setPage(1);
@@ -25,40 +26,36 @@ export default function App() {
   };
 
   useEffect(() => {
+    setIsLoading(true);
     if (!pictureName) {
+      setIsLoading(false);
       return;
     }
-
-    setStatus('pending');
 
     Api.fetchPictures(pictureName, page)
       .then(({ hits, totalHits }) => {
         setPictures(prevPictures => [...prevPictures, ...hits]);
         setLoadMore(page < Math.ceil(totalHits / 12));
-        setStatus('resolved');
+        setIsLoading(false);
       })
-
       .catch(error => {
         setError(error);
-        setStatus('rejected');
+        setIsLoading(false);
       });
   }, [pictureName, page]);
 
   const renderImageGallery = () => {
-    if (status === 'pending') {
-      return <Loader />;
-    }
-    if (status === 'rejected') {
-      return <h1>{error.message}</h1>;
-    }
-    if (status === 'resolved') {
-      return (
-        <>
-          <ImageGallery pictures={pictures} />
-          {loadMore && <Button onClick={loadMorePictures} />}
-        </>
-      );
-    }
+    return (
+      <>
+        {error && <h1>{error.message}</h1>}
+        <ImageGallery pictures={pictures} />
+        {isLoading ? (
+          <Loader />
+        ) : (
+          loadMore && <Button onClick={loadMorePictures} />
+        )}
+      </>
+    );
   };
 
   return (
